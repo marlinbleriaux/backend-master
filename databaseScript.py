@@ -3,7 +3,7 @@ import pypyodbc
 from dotenv import dotenv_values
 from collections import OrderedDict
 from datetime import date, datetime
-from flask import Response
+from flask import Response, jsonify
 import json
 import mysql.connector
 
@@ -32,6 +32,31 @@ except mysql.connector.Error as e:
     print(f"Erreur lors de la connexion à la base de données MySQL: {e}")
 # connection = pypyodbc.connect(f"Driver={config['DB_DRIVER']};Server={config['DB_HOST']};Database={config['DB_DATABASE']};uid={config['DB_USERNAME']};pwd={config['DB_PASSWORD']}", autocommit=True)
 cursor = connection.cursor()
+
+
+def create_user(username, password):
+    sql = "INSERT INTO users (username, password) VALUES (%s, %s)"
+    param_values = (username, password)
+    try:
+        cursor.execute(sql, param_values)
+        connection.commit()
+        return jsonify({"message": "User created successfully"}), 201
+    except mysql.connector.Error as err:
+        return jsonify({"message": str(err)}), 400
+
+
+def get_user(username):
+    sql = "SELECT * FROM users WHERE username = %s"
+    param_values = (username,)
+    cursor.execute(sql, param_values)
+    result = cursor.fetchone()
+    if result:
+        return {
+            'id': result[0],
+            'username': result[1],
+            'password': result[2]
+        }
+    return None
 
 
 def getStudents():

@@ -1,19 +1,26 @@
 # -*- coding: utf-8 -*-
+import json
+import os
+from datetime import date, timedelta
+
 import cv2
 import face_recognition
-import os
-from face_recognition.api import face_encodings
 import numpy as np
-from datetime import date, datetime
-from flask import Flask, request, redirect, url_for, Response
+from flask import Flask, request, Response, jsonify
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from werkzeug.security import check_password_hash, generate_password_hash
+
 import databaseScript
-from datetime import date, datetime
-import json
 
 # create the Flask app
 app = Flask(__name__)
 message = {}
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+# Set up the Flask-JWT-Extended extension
+app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key'  # Change this to a random secret key
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
+jwt = JWTManager(app)
 
 
 def allowed_file(filename):
@@ -25,7 +32,36 @@ def save_file(file, id):
     file.save(os.path.join(f'Images/', f"{id}-{file.filename}"))
 
 
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({"message": "Username and password are required"}), 400
+
+    hashed_password = generate_password_hash(password)
+    result = databaseScript.create_user(username, hashed_password)
+    return result
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    user = databaseScript.get_user(username)
+    if user and check_password_hash(user['password'], password):
+        access_token = create_access_token(identity=username)
+        return jsonify(access_token=access_token), 200
+    else:
+        return jsonify({"message": "Invalid credentials"}), 401
+
+
 @app.route('/students', methods=['POST'])
+@jwt_required()
 def create_student():
     """Crée un nouvel étudiant."""
     data = request.get_json()
@@ -53,13 +89,14 @@ def findEncodingImg(images):
     return encodeList
 
 
-
 @app.route('/students', methods=['GET'])
+@jwt_required()
 def getEmployeesdata():
     return databaseScript.getStudents()
 
 
 @app.route('/enroll/<id>', methods=['POST'])
+@jwt_required()
 def enrollement(id):
     file = request.files['photo']
 
@@ -80,6 +117,7 @@ def enrollement(id):
 
 
 @app.route('/check', methods=['POST'])
+@jwt_required()
 def check():
     file = request.files['photo']
 
