@@ -46,36 +46,29 @@ def create_user(username, password):
 
 
 def get_user(username):
-    sql = "SELECT * FROM users WHERE username = %s"
+    sql = """
+    SELECT users.id, users.username, users.password, roles.id AS id, roles.name
+    FROM users
+    JOIN roles ON users.id = roles.id
+    WHERE users.username = %s
+    """
     param_values = (username,)
     cursor.execute(sql, param_values)
     result = cursor.fetchone()
     if result:
-        return {
+        user = {
             'id': result[0],
             'username': result[1],
-            'password': result[2]
+            'password': result[2],
+            'role': {
+                'id': result[0],
+                'name': result[1]
+            }
         }
+        return user
     return None
 
 
-def getStudents():
-    sql = "SELECT * FROM students"
-    cursor.execute(sql)
-    results = cursor.fetchall()
-    students = []
-
-    for result in results:
-        content = {
-            'id': result[0],
-            'name': result[1],
-            'filiere': result[2],
-            'level': result[3],
-            'matricule': result[4]
-        }
-        students.append(content)
-
-    return json.dumps(students, default=str)
 
 
 def enroll_employee(student_id, picture):
@@ -88,7 +81,7 @@ def enroll_employee(student_id, picture):
     message = {'message': 'Employee is enrolled with success'}
     return Response(json.dumps(message), status=200, mimetype='application/json')
 
-
+# -------------------gestion des presences---------------
 def save_attendance(student_id):
     sql = "INSERT INTO attendance_lists (student_id , time) values(%s, %s)"
     param_values = (student_id, datetime.now())
@@ -98,14 +91,93 @@ def save_attendance(student_id):
     message = {'message': 'La présence a été enregistrée'}
     return Response(json.dumps(message), status=200, mimetype='application/json')
 
+# // student requete--------
 
-def add_student(name, filiere, level, matricule):
+# -----------------ajout student--------------
+def add_student(name, email, sexe, phoneNumber, filiere, level, matricule, departement, faculty, birthdate):
     """Ajoute un nouvel étudiant à la base de données."""
-    sql = "INSERT INTO students (name, filiere, level, matricule) VALUES (%s, %s, %s, %s)"
-    param_values = (name, filiere, level, matricule)
+    sql = """
+    INSERT INTO students (name, email, sexe, phoneNumber, filiere, level, matricule, departement, faculty, birthdate)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    param_values = (name, email, sexe, phoneNumber, filiere, level, matricule, departement, faculty, birthdate)
 
     cursor.execute(sql, param_values)
     connection.commit()
 
     message = {'message': 'Student has been added successfully'}
     return Response(json.dumps(message), status=200, mimetype='application/json')
+
+
+# --------------------------------Mettre à jour un étudiant
+def updateStudent(id, data):
+    try:
+        sql_update = """
+        UPDATE students
+        SET name = %s, email = %s, sexe = %s, phoneNumber = %s, filiere = %s, level = %s, matricule = %s
+        WHERE id = %s
+        """
+        values_update = (
+            data['name'],
+            data['email'],
+            data['sexe'],
+            data['phoneNumber'],
+            data['filiere'],
+            data['level'],
+            data['matricule'],
+            id
+        )
+        cursor.execute(sql_update, values_update)
+        connection.commit()
+        return True
+    except Exception as e:
+        connection.rollback()
+        print("Error updating student:", e)
+        return False
+
+# -----------------------recuper les etudiants ----------------------------------------------
+def getStudents():
+        sql = "SELECT * FROM students"
+        cursor.execute(sql)
+        results = cursor.fetchall()
+        students = []
+
+        for result in results:
+            content = {
+                'id': result[0],
+                'name': result[1],
+                'email': result[2],
+                'sexe': result[3],
+                'phoneNumber': result[4],
+                'filiere': result[5],
+                'level': result[6],
+                'matricule': result[7]
+            }
+            students.append(content)
+
+        return json.dumps(students, default=str)
+
+
+# ----------------Récupérer un étudiant spécifique
+def getStudentById(id):
+    try:
+        sql = "SELECT * FROM students WHERE id = %s"
+        cursor.execute(sql, (id,))
+        result = cursor.fetchone()
+        if result:
+            student = {
+                'id': result[0],
+                'name': result[1],
+                'email': result[2],
+                'sexe': result[3],
+                'phoneNumber': result[4],
+                'filiere': result[5],
+                'level': result[6],
+                'matricule': result[7]
+            }
+            return json.dumps(student, default=str)
+        else:
+            return None
+    except Exception as e:
+        print("Error fetching student by id:", e)
+        return None

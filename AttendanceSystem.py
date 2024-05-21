@@ -9,17 +9,20 @@ import numpy as np
 from flask import Flask, request, Response, jsonify
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash, generate_password_hash
+from flask_cors import CORS
+
 
 import databaseScript
 
 # create the Flask app
 app = Flask(__name__)
+CORS(app)
 message = {}
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 # Set up the Flask-JWT-Extended extension
 app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key'  # Change this to a random secret key
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
 jwt = JWTManager(app)
 
 
@@ -32,7 +35,7 @@ def save_file(file, id):
     file.save(os.path.join(f'Images/', f"{id}-{file.filename}"))
 
 
-@app.route('/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
     username = data.get('username')
@@ -46,36 +49,47 @@ def register():
     return result
 
 
-@app.route('/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
+    # print(data)
 
     user = databaseScript.get_user(username)
     if user and check_password_hash(user['password'], password):
         access_token = create_access_token(identity=username)
-        return jsonify(access_token=access_token), 200
+        return jsonify(
+            user=user,
+            access_token=access_token
+                       ), 200
     else:
         return jsonify({"message": "Invalid credentials"}), 401
 
 
-@app.route('/students', methods=['POST'])
+@app.route('/api/students', methods=['POST'])
 @jwt_required()
 def create_student():
     """Crée un nouvel étudiant."""
     data = request.get_json()
     name = data.get('name')
+    email = data.get('email')
+    sexe = data.get('sexe')
+    phoneNumber = data.get('phoneNumber')
     filiere = data.get('filiere')
     level = data.get('level')
     matricule = data.get('matricule')
+    departement = data.get('departement')
+    faculty = data.get('faculty')
+    birthdate = data.get('birthdate')
 
-    if not name or not filiere or not level or not matricule:
+    if not all([name, email, sexe, phoneNumber, filiere, level, matricule, departement, faculty, birthdate]):
         message = {'message': 'Veuillez fournir toutes les informations de l\'étudiant'}
         return Response(json.dumps(message), status=400, mimetype='application/json')
 
-    result = databaseScript.add_student(name, filiere, level, matricule)
+    result = databaseScript.add_student(name, email, sexe, phoneNumber, filiere, level, matricule, departement, faculty, birthdate)
     return result
+
 
 
 def findEncodingImg(images):
@@ -89,13 +103,47 @@ def findEncodingImg(images):
     return encodeList
 
 
-@app.route('/students', methods=['GET'])
+@app.route('/api/students', methods=['GET'])
 @jwt_required()
 def getEmployeesdata():
-    return databaseScript.getStudents()
+    try:
+        data = databaseScript.getStudents()
 
+        # Si les données sont une chaîne JSON, les convertir en liste de dictionnaires
+        if isinstance(data, str):
+            data = json.loads(data)
 
-@app.route('/enroll/<id>', methods=['POST'])
+        return jsonify(data=data), 200
+    except Exception as e:
+        # Log l'exception si nécessaire
+        print(f"An error occurred: {e}")
+        # Retourne un message d'erreur avec le code de statut 500 (Internal Server Error)
+        return jsonify(error="An error occurred while fetching the employees data .", details=str(e)), 500
+
+# Route pour mettre à jour un étudiant
+@app.route('/api/students/<int:id>', methods=['PUT'])
+def update_student(id):
+    data = request.json
+    try:
+        if databaseScript.updateStudent(id, data):
+            # Si la mise à jour réussit, renvoyer les informations mises à jour de l'étudiant
+            updated_student = {
+                'id': id,
+                'name': data['name'],
+                'email': data['email'],
+                'sexe': data['sexe'],
+                'phoneNumber': data['phoneNumber'],
+                'filiere': data['filiere'],
+                'level': data['level'],
+                'matricule': data['matricule']
+            }
+            return jsonify(student=updated_student), 200
+        else:
+            return jsonify(error="Failed to update student"), 500
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+@app.route('/api/enroll/<id>', methods=['POST'])
 @jwt_required()
 def enrollement(id):
     file = request.files['photo']
@@ -116,7 +164,7 @@ def enrollement(id):
         return result
 
 
-@app.route('/check', methods=['POST'])
+@app.route('/api/check', methods=['POST'])
 @jwt_required()
 def check():
     file = request.files['photo']
@@ -179,6 +227,18 @@ def check():
             else:
                 message = {'message': 'Envoyer l\' image d\'une personne'}
                 return Response(json.dumps(message), status=400, mimetype='application/json')
+
+# Route pour récupérer un étudiant spécifique
+@app.route('/api/students/<int:id>', methods=['GET'])
+def get_student(id):
+    try:
+        student = databaseScript.getStudentById(id)
+        if student:
+            return jsonify(student=json.loads(student)), 200
+        else:
+            return jsonify(error="Student not found"), 404
+    except Exception as e:
+        return jsonify(error=str(e)), 500
 
 
 if __name__ == '__main__':
