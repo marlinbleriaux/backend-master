@@ -34,6 +34,56 @@ except mysql.connector.Error as e:
 cursor = connection.cursor()
 
 
+# -------------------gestion des presences---------------
+def save_attendance(student_id):
+    try:
+        # Sauvegarder la présence dans la base de données
+        sql = "INSERT INTO attendance_lists (student_id, time) VALUES (%s, %s)"
+        param_values = (student_id, datetime.now())
+        cursor.execute(sql, param_values)
+        connection.commit()
+
+        # Récupérer les informations de l'étudiant
+        cursor.execute("SELECT * FROM students WHERE id = %s", (student_id,))
+        result = cursor.fetchone()
+        content = {
+            'id': result[0],
+            'name': result[1],
+            'email': result[2],
+            'sexe': result[3],
+            'phoneNumber': result[4],
+            'filiere': result[5],
+            'level': result[6],
+            'matricule': result[7],
+            'departement': result[8],
+            'faculty': result[9],
+            'birthdate': result[10]
+        }
+
+        if not result:
+            return Response(json.dumps({'message': 'Étudiant non trouvé'}), status=404, mimetype='application/json')
+
+        # Récupérer la liste des présences de l'étudiant
+        cursor.execute("SELECT * FROM attendance_lists WHERE student_id = %s", (student_id,))
+        attendance_list = cursor.fetchall()
+        attendance = {
+            'id': result[0],
+            'student_id': result[1],
+            'time': result[2],
+
+        }
+
+        # Construire la réponse
+        response_data = {
+            'student': content,
+            'attendance_list': attendance
+        }
+
+        # Retourner les informations de l'étudiant et la liste des présences
+        return response_data
+    except mysql.connector.Error as err:
+        return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
+
 def create_user(username, password):
     sql = "INSERT INTO users (username, password) VALUES (%s, %s)"
     param_values = (username, password)
@@ -78,18 +128,29 @@ def enroll_employee(student_id, picture):
     cursor.execute(sql, param_values)
     connection.commit()
 
+    # Récupérer les informations de l'étudiant
+    cursor.execute("SELECT * FROM students WHERE id = %s", (student_id,))
+    result = cursor.fetchone()
+    content = {
+        'id': result[0],
+        'name': result[1],
+        'email': result[2],
+        'sexe': result[3],
+        'phoneNumber': result[4],
+        'filiere': result[5],
+        'level': result[6],
+        'matricule': result[7],
+        'departement': result[8],
+        'faculty': result[9],
+        'birthdate': result[10]
+    }
+
     message = {'message': 'Employee is enrolled with success'}
-    return Response(json.dumps(message), status=200, mimetype='application/json')
-
-# -------------------gestion des presences---------------
-def save_attendance(student_id):
-    sql = "INSERT INTO attendance_lists (student_id , time) values(%s, %s)"
-    param_values = (student_id, datetime.now())
-    cursor.execute(sql, param_values)
-    connection.commit()
-
-    message = {'message': 'La présence a été enregistrée'}
-    return Response(json.dumps(message), status=200, mimetype='application/json')
+    # return Response(json.dumps(message), status=200, mimetype='application/json')
+    return {
+        "user":content,
+        "path":picture
+    }
 
 # // student requete--------
 
@@ -151,7 +212,10 @@ def getStudents():
                 'phoneNumber': result[4],
                 'filiere': result[5],
                 'level': result[6],
-                'matricule': result[7]
+                'matricule': result[7],
+                'departement': result[8],
+                'faculty': result[9],
+                'birthdate': result[10]
             }
             students.append(content)
 
@@ -173,7 +237,10 @@ def getStudentById(id):
                 'phoneNumber': result[4],
                 'filiere': result[5],
                 'level': result[6],
-                'matricule': result[7]
+                'matricule': result[7],
+                'departement': result[8],
+                'faculty': result[9],
+                'birthdate': result[10]
             }
             return json.dumps(student, default=str)
         else:

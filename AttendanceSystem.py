@@ -160,6 +160,7 @@ def enrollement(id):
 
         path_image = f'Images/{id}-{file.filename}'
         result = databaseScript.enroll_employee(id, path_image)
+        print(result)
         save_file(file, id)
         return result
 
@@ -168,12 +169,14 @@ def enrollement(id):
 @jwt_required()
 def check():
     file = request.files['photo']
+    print(file)
 
     if file.filename == '':
         message = {'message': 'No file selected'}
         return Response(json.dumps(message), status=400, mimetype='application/json')
-
+    # print(file)
     if file and allowed_file(file.filename):
+        # print(file)
         path = f'Images'
         if not os.path.exists(path):
             message = {'message': 'Employee isn\'t enrolled'}
@@ -216,7 +219,17 @@ def check():
                         path_image = f'{path}/{file.filename}'
                         id = ((classNames[matcheIndexes]).split('-'))[0]
                         result = databaseScript.save_attendance(id)
-                        return result
+
+                        if isinstance(result, str):  # Si result est une chaîne de caractères JSON
+                            result = json.loads(result)
+
+                        faceDis_list = faceDis.tolist()
+                        data = {
+                         'result' : result,
+                        'faceDis' : faceDis_list,
+                        'matcheIndexes' : int(matcheIndexes)
+                        }
+                        return jsonify(data)
 
                     else:
                         message = {'message': 'Aucune personne n\'a été trouvé'}
@@ -225,7 +238,7 @@ def check():
                     message = {'message': 'Aucune personne n\'a été trouvé'}
                     return Response(json.dumps(message), status=400, mimetype='application/json')
             else:
-                message = {'message': 'Envoyer l\' image d\'une personne'}
+                message = {'message': 'Envoyer une image conforme'}
                 return Response(json.dumps(message), status=400, mimetype='application/json')
 
 # Route pour récupérer un étudiant spécifique
@@ -233,6 +246,7 @@ def check():
 def get_student(id):
     try:
         student = databaseScript.getStudentById(id)
+        print(student)
         if student:
             return jsonify(student=json.loads(student)), 200
         else:
