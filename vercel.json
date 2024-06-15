@@ -1,7 +1,6 @@
 {
   "version": 2,
-  "orgId": "team_hpGhxFLoUKTvYBtfuKGohMAqe",
-  "projectId": "prj_0479J5ZIuD6vPcQCDDuvuDI85JW4",
+
   "builds": [
     {
       "src": "AttendanceSystem.py",
