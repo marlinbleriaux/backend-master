@@ -14,11 +14,16 @@ config = dotenv_values(".env")
 # creating connection Object which will contain MySQL Server Connection
 try:
     connection = mysql.connector.connect(
-        host='localhost',
+        # host='localhost',
+        host='sql12.freesqldatabase.com',
         port=3306,
-        user='root',
-        password='',
-        database='recognition',
+        # port=14451,
+        # user='root',
+        user='sql12713949',
+        # password='',
+        password='MK3fGitkIG',
+        # database='recognition',
+        database='sql12713949',
         # port=int(config['DB_PORT']),
         # user=config['DB_USERNAME'],
         # password=config['DB_PASSWORD'],

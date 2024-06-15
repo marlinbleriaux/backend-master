@@ -255,6 +255,19 @@ def get_student(id):
         return jsonify(error=str(e)), 500
 
 
+# if __name__ == '__main__':
+#     # run app in debug mode on port 5000
+#     app.run(debug=True, host='192.168.1.100', port=5000)
 if __name__ == '__main__':
-    # run app in debug mode on port 5000
-    app.run(debug=True, host='192.168.1.100', port=5000)
+    import os
+
+    # Définir une variable d'environnement pour distinguer l'environnement local
+    environment = os.environ.get('FLASK_ENV', 'production')
+
+    # Si nous sommes en développement local, utilisez le port 5000 et l'adresse IP locale
+    if environment == 'development':
+        app.run(debug=True, host='192.168.1.100', port=5000)
+    else:
+        # Sinon, utilisez le port assigné par l'environnement de production (Vercel)
+        port = int(os.environ.get('PORT', 5000))
+        app.run(debug=True, host='0.0.0.0', port=port)
