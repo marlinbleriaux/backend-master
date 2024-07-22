@@ -15,15 +15,15 @@ config = dotenv_values(".env")
 try:
     connection = mysql.connector.connect(
         # host='localhost',
-        host='sql12.freesqldatabase.com',
+        host='check-stud.cvgq26sewyvb.us-east-2.rds.amazonaws.com',
         port=3306,
         # port=14451,
         # user='root',
-        user='sql12713949',
+        user='admin',
         # password='',
         password='MK3fGitkIG',
-        # database='recognition',
-        database='sql12713949',
+        database='recognition',
+        # database='sql12713949',
         # port=int(config['DB_PORT']),
         # user=config['DB_USERNAME'],
         # password=config['DB_PASSWORD'],
@@ -253,3 +253,73 @@ def getStudentById(id):
     except Exception as e:
         print("Error fetching student by id:", e)
         return None
+
+    def search_students(criteria):
+        try:
+            # Construction de la requête SQL de base
+            sql = "SELECT * FROM students WHERE "
+            sql_conditions = []
+            sql_params = []
+
+            # Ajout des conditions pour chaque critère
+            if 'name' in criteria:
+                sql_conditions.append("name LIKE %s")
+                sql_params.append(f"%{criteria['name']}%")
+            if 'email' in criteria:
+                sql_conditions.append("email LIKE %s")
+                sql_params.append(f"%{criteria['email']}%")
+            if 'sexe' in criteria:
+                sql_conditions.append("sexe LIKE %s")
+                sql_params.append(f"%{criteria['sexe']}%")
+            if 'phoneNumber' in criteria:
+                sql_conditions.append("phoneNumber LIKE %s")
+                sql_params.append(f"%{criteria['phoneNumber']}%")
+            if 'filiere' in criteria:
+                sql_conditions.append("filiere LIKE %s")
+                sql_params.append(f"%{criteria['filiere']}%")
+            if 'level' in criteria:
+                sql_conditions.append("level LIKE %s")
+                sql_params.append(f"%{criteria['level']}%")
+            if 'matricule' in criteria:
+                sql_conditions.append("matricule LIKE %s")
+                sql_params.append(f"%{criteria['matricule']}%")
+            if 'departement' in criteria:
+                sql_conditions.append("departement LIKE %s")
+                sql_params.append(f"%{criteria['departement']}%")
+            if 'faculty' in criteria:
+                sql_conditions.append("faculty LIKE %s")
+                sql_params.append(f"%{criteria['faculty']}%")
+            if 'birthdate' in criteria:
+                sql_conditions.append("birthdate LIKE %s")
+                sql_params.append(f"%{criteria['birthdate']}%")
+
+            # Joindre les conditions avec 'AND'
+            sql += " AND ".join(sql_conditions)
+
+            # Exécuter la requête
+            cursor.execute(sql, sql_params)
+            results = cursor.fetchall()
+
+            # Construire la liste des étudiants
+            students = []
+            for result in results:
+                content = {
+                    'id': result[0],
+                    'name': result[1],
+                    'email': result[2],
+                    'sexe': result[3],
+                    'phoneNumber': result[4],
+                    'filiere': result[5],
+                    'level': result[6],
+                    'matricule': result[7],
+                    'departement': result[8],
+                    'faculty': result[9],
+                    'birthdate': result[10]
+                }
+                students.append(content)
+
+            return json.dumps(students, default=str)
+
+        except mysql.connector.Error as err:
+            print(f"Error: {err}")
+            return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
