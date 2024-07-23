@@ -1,7 +1,5 @@
 # importing module
 
-from dotenv import dotenv_values
-from collections import OrderedDict
 from datetime import date, datetime
 from flask import Response, jsonify
 import json
@@ -10,7 +8,6 @@ import mysql.connector
 # from flask import jsonify
 
 # Config
-config = dotenv_values(".env")
 # creating connection Object which will contain MySQL Server Connection
 try:
     connection = mysql.connector.connect(
@@ -253,7 +250,7 @@ def getStudentById(id):
         print("Error fetching student by id:", e)
         return None
 
-    def search_students(criteria):
+def search_students(criteria):
         try:
             # Construction de la requête SQL de base
             sql = "SELECT * FROM students WHERE "
