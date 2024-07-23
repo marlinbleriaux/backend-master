@@ -1,5 +1,5 @@
 # importing module
-import pypyodbc
+
 from dotenv import dotenv_values
 from collections import OrderedDict
 from datetime import date, datetime
@@ -35,7 +35,6 @@ try:
         print('Connecté à la base de données MySQL')
 except mysql.connector.Error as e:
     print(f"Erreur lors de la connexion à la base de données MySQL: {e}")
-# connection = pypyodbc.connect(f"Driver={config['DB_DRIVER']};Server={config['DB_HOST']};Database={config['DB_DATABASE']};uid={config['DB_USERNAME']};pwd={config['DB_PASSWORD']}", autocommit=True)
 cursor = connection.cursor()
 
 
